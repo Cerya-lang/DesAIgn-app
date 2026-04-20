@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import os
 import json
 import requests
@@ -9,109 +8,80 @@ from google.oauth2 import service_account
 # --- CONFIGURATION ---
 st.set_page_config(page_title="DesAIgn Studio | ÉTS", page_icon="🎨", layout="wide")
 
-# Variables d'environnement Railway
 HF_TOKEN = os.environ.get('HF_TOKEN')
 GOOGLE_JSON = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
 
-# --- INITIALISATION IA (Correction 401/404) ---
+# --- INITIALISATION IA (Correction 404 stable) ---
 def init_gemini():
     try:
         if GOOGLE_JSON:
             info = json.loads(GOOGLE_JSON)
             cred = service_account.Credentials.from_service_account_info(info)
             genai.configure(credentials=cred)
-            # Utilisation du modèle stable pour éviter l'erreur 404
+            # Utilisation de la version stable pour éviter l'erreur 404 v1beta
             return genai.GenerativeModel('gemini-1.5-flash')
-    except Exception as e:
-        st.sidebar.error(f"❌ Erreur Auth : {e}")
+    except Exception:
+        return None
     return None
 
 model = init_gemini()
 
-# --- SIDEBAR ---
+# --- SIDEBAR (PROFIL) ---
 with st.sidebar:
     st.title("🎨 DesAIgn Dashboard")
-    with st.expander("👤 Profil", expanded=True):
+    with st.expander("👤 Mon Compte", expanded=True):
         st.write("**Nom :** Cerya")
         st.write("**Institution :** ÉTS")
         st.write("**Statut :** Développeur Principal")
-    
     st.divider()
-    st.subheader("🌐 Langue")
-    st.caption("Détection automatique activée")
-    
-    st.subheader("⚙️ État des APIs")
-    st.success("Google Gemini : Connecté") if model else st.error("Google Gemini : Erreur")
-    st.success("HuggingFace : Configuré") if HF_TOKEN else st.warning("HuggingFace : Manquant")
+    st.caption("🌐 Détection de langue intelligente active")
 
 # --- INTERFACE PRINCIPALE ---
 st.title("DesAIgn | Studio de Recherche & Création")
 
-tabs = st.tabs(["💬 Analyse Multilingue", "🧊 Génération 3D Réelle", "📞 War Room"])
+tabs = st.tabs(["💬 Analyse Multilingue", "🧊 Moteur 3D", "📞 War Room"])
 
-# --- ONGLET 1 : ANALYSE & RECHERCHE (MULTILINGUE) ---
+# --- ONGLET 1 : ANALYSE ---
 with tabs[0]:
     if "messages" not in st.session_state: st.session_state.messages = []
     
-    chat_container = st.container(height=450)
+    container = st.container(height=450)
     for m in st.session_state.messages:
-        with chat_container.chat_message(m["role"]): st.markdown(m["content"])
+        with container.chat_message(m["role"]): st.markdown(m["content"])
 
-    if prompt := st.chat_input("Ex: Analyse la structure d'une Porsche 911 ou d'un t-shirt Nike..."):
+    if prompt := st.chat_input("Écris en français, anglais, japonais..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        with chat_container.chat_message("user"): st.markdown(prompt)
+        with container.chat_message("user"): st.markdown(prompt)
         
-        with chat_container.chat_message("assistant"):
+        with container.chat_message("assistant"):
             if model:
-                with st.spinner("Recherche approfondie en cours..."):
-                    # Instruction pour la langue et la recherche
-                    system_instr = f"""
-                    IDENTITÉ : Tu es DesAIgn, expert en ingénierie et mode.
-                    LANGUE : Détecte la langue de l'utilisateur et réponds EXCLUSIVEMENT dans cette même langue.
-                    MISSION : 
-                    1. Simule une analyse du site officiel, de Google Images et des réseaux sociaux pour : "{prompt}".
-                    2. Détaille les matériaux, la géométrie et le design.
-                    3. Génère un 'MASTER PROMPT' en ANGLAIS à la fin pour la 3D.
-                    """
+                with st.spinner("Analyse en cours..."):
+                    # Instruction stricte pour la langue
+                    instr = f"Tu es l'IA DesAIgn. RÉPONDS TOUJOURS DANS LA LANGUE DU PROMPT: {prompt}. Analyse le design et termine par un 'MASTER PROMPT 3D (EN):' détaillé."
                     try:
-                        response = model.generate_content(system_instr)
+                        response = model.generate_content(instr)
                         st.markdown(response.text)
                         st.session_state.messages.append({"role": "assistant", "content": response.text})
                     except Exception as e:
                         st.error(f"Erreur d'analyse : {e}")
             else:
-                st.error("L'IA n'est pas connectée. Vérifie tes clés sur Railway.")
+                st.error("Erreur de connexion Gemini. Vérifie tes identifiants Google.")
 
-# --- ONGLET 2 : MOTEUR 3D (OPÉRATIONNEL) ---
+# --- ONGLET 2 : MOTEUR 3D ---
 with tabs[1]:
     st.subheader("Générateur 3D Haute Fidélité")
-    st.info("Colle ici le Master Prompt généré par l'IA.")
+    user_prompt_3d = st.text_area("Master Prompt 3D (en anglais) :", height=100)
     
-    final_prompt = st.text_area("Prompt technique :", placeholder="A photorealistic 3D model of...")
-    
-    if st.button("Lancer la fabrication de l'objet"):
+    if st.button("Lancer la fabrication"):
         if not HF_TOKEN:
-            st.error("Token HuggingFace manquant dans Railway.")
-        elif not final_prompt:
-            st.warning("Veuillez entrer un prompt.")
+            st.error("Token Hugging Face manquant dans Railway.")
         else:
-            with st.spinner("Modélisation des polygones en cours (HuggingFace Shap-E)..."):
+            with st.spinner("Calcul des polygones..."):
                 API_URL = "https://api-inference.huggingface.co/models/openai/shap-e"
                 headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-                try:
-                    res = requests.post(API_URL, headers=headers, json={"inputs": final_prompt})
-                    if res.status_code == 200:
-                        st.success("✅ Modèle 3D généré avec succès !")
-                        st.balloons()
-                        # Ici, on pourrait ajouter l'affichage du fichier .obj ou .glb
-                    else:
-                        st.error(f"Le serveur 3D est saturé (Code {res.status_code}). Réessaie dans 30 secondes.")
-                except Exception as e:
-                    st.error(f"Erreur technique : {e}")
-
-# --- ONGLET 3 : WAR ROOM ---
-with tabs[2]:
-    components.html(f"""
-        <iframe allow="camera; microphone; display-capture; autoplay" 
-        src="https://meet.jit.si/DesAIgn_Studio_ETS_Cerya" style="height: 600px; width: 100%; border:0; border-radius:15px;"></iframe>
-    """, height=620)
+                res = requests.post(API_URL, headers=headers, json={"inputs": user_prompt_3d})
+                if res.status_code == 200:
+                    st.success("✅ Objet 3D prêt !")
+                    st.balloons()
+                else:
+                    st.error("Le moteur 3D est occupé. Réessaie dans 10 secondes.")
