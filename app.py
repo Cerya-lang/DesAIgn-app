@@ -16,8 +16,8 @@ GOOGLE_JSON = st.secrets.get('GOOGLE_SERVICE_ACCOUNT_INFO')
 # --- INITIALISATION IA (Correction Force Stable) ---
 def init_gemini():
     try:
-        if GOOGLE_JSON:
-            info = json.loads(GOOGLE_JSON)
+        if GOOGLE_JSON is not None:
+            info = json.loads(str(GOOGLE_JSON))
             cred = service_account.Credentials.from_service_account_info(info)
             # Utilisation de la version stable pour éviter l'erreur 404
             genai.configure(credentials=cred)
