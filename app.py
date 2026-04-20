@@ -25,7 +25,7 @@ def init_gemini():
         info = json.loads(json_data)
         cred = service_account.Credentials.from_service_account_info(info)
         genai.configure(credentials=cred)
-        return genai.GenerativeModel(model_name='gemini-1.5-flash'), None
+        return genai.GenerativeModel(model_name='models/gemini-1.5-flash'), None
     except json.JSONDecodeError as e:
         return None, f"Erreur de format JSON : {e}"
     except Exception as e:
