@@ -17,11 +17,14 @@ def init_gemini():
     try:
         api_key = st.secrets.get("GOOGLE_API_KEY")
         if not api_key:
-            return None, "Secret GOOGLE_API_KEY introuvable."
-            
+            return None, "Clé API manquante dans les Secrets."
+        
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
+        # On utilise le nom court sans 'models/' pour éviter le bug 404
+        model = genai.GenerativeModel('gemini-1.5-flash')
         return model, None
+    except Exception as e:
+        return None, f"Erreur système : {str(e)}"
         
     except Exception as e:
         return None, f"Erreur système : {e}"
