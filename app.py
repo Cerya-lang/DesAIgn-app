@@ -10,8 +10,9 @@ from google.oauth2 import service_account
 st.set_page_config(page_title="DesAIgn Studio | ÉTS", page_icon="🎨", layout="wide")
 
 # À METTRE À LA PLACE
-HF_TOKEN = st.secrets.get('HF_TOKEN')
-GOOGLE_JSON = st.secrets.get('GOOGLE_SERVICE_ACCOUNT_INFO')
+# Force la conversion en chaîne de caractères pour éviter les erreurs de format
+HF_TOKEN = str(st.secrets.get('HF_TOKEN', ""))
+GOOGLE_JSON = str(st.secrets.get('GOOGLE_SERVICE_ACCOUNT_INFO', ""))
 
 # --- INITIALISATION IA (Correction Force Stable) ---
 def init_gemini():
