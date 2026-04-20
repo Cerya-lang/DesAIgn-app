@@ -10,8 +10,9 @@ from google.oauth2 import service_account
 st.set_page_config(page_title="DesAIgn Studio | ÉTS", page_icon="🎨", layout="wide")
 
 # Récupération des variables Railway
-HF_TOKEN = os.environ.get('HF_TOKEN')
-GOOGLE_JSON = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+# Récupération des secrets Streamlit (au lieu de Railway)
+HF_TOKEN = st.secrets.get('HF_TOKEN')
+GOOGLE_JSON = st.secrets.get('GOOGLE_SERVICE_ACCOUNT_INFO')
 
 # --- INITIALISATION IA (Correction Force Stable) ---
 def init_gemini():
