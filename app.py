@@ -20,7 +20,7 @@ def init_gemini():
             return None, "Secret GOOGLE_API_KEY introuvable."
             
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('models/gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         return model, None
         
     except Exception as e:
