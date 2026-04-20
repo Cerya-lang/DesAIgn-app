@@ -19,7 +19,7 @@ def init_gemini():
         if GOOGLE_JSON:
             info = json.loads(GOOGLE_JSON)
             cred = service_account.Credentials.from_service_account_info(info)
-            # Utilisation de la version stable pour éviter les erreurs 404/401
+            # Utilisation de la version stable pour éviter l'erreur 404
             genai.configure(credentials=cred)
             return genai.GenerativeModel(model_name='gemini-1.5-flash')
     except Exception:
@@ -47,7 +47,7 @@ st.caption("Assistant d'ingénierie design pour l'ÉTS")
 
 tabs = st.tabs(["💬 Analyse Multilingue", "🧊 Moteur 3D", "📞 War Room"])
 
-# --- ONGLET 1 : ANALYSE (MULTILINGUE) ---
+# --- ONGLET 1 : ANALYSE ---
 with tabs[0]:
     if "messages" not in st.session_state: 
         st.session_state.messages = []
@@ -57,7 +57,7 @@ with tabs[0]:
         with container.chat_message(m["role"]): 
             st.markdown(m["content"])
 
-    # Modification demandée : Placeholder universel pour véhicules et vêtements
+    # Placeholder universel demandé
     if prompt := st.chat_input("Analyse n'importe quel vêtement ou véhicule au monde..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with container.chat_message("user"): 
@@ -66,7 +66,7 @@ with tabs[0]:
         with container.chat_message("assistant"):
             if model:
                 with st.spinner("Analyse approfondie en cours..."):
-                    # Instruction système pour forcer la langue et le prompt 3D
+                    # Instruction système pour forcer la langue du prompt utilisateur
                     system_prompt = (
                         f"Tu es l'expert DesAIgn. RÉPONDS EXCLUSIVEMENT DANS LA LANGUE DU MESSAGE SUIVANT : '{prompt}'. "
                         f"Analyse les matériaux et le design de : {prompt}. "
@@ -86,7 +86,7 @@ with tabs[1]:
     st.subheader("Laboratoire de Modélisation 3D")
     st.info("Colle ici la description technique générée par l'analyse.")
     
-    # Modification demandée : Retrait de la mention "(English)"
+    # "Master Prompt 3D :" simplifié (sans mention English)
     user_prompt_3d = st.text_area("Master Prompt 3D :", height=150)
     
     if st.button("Lancer la fabrication de l'objet"):
