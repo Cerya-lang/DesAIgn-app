@@ -79,7 +79,7 @@ with tabs[0]:
                     except Exception as e:
                         st.error(f"Erreur d'accès à l'IA : {e}")
             else:
-                st.error("L'IA n'est pas connectée. Vérifie ton fichier JSON dans Railway.")
+                st.error("L'IA n'est pas connectée. Vérifie tes Secrets dans Streamlit Cloud.")
 
 # --- ONGLET 2 : MOTEUR 3D ---
 with tabs[1]:
