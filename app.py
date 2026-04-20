@@ -9,8 +9,7 @@ from google.oauth2 import service_account
 # --- CONFIGURATION DE LA PAGE ---
 st.set_page_config(page_title="DesAIgn Studio | ÉTS", page_icon="🎨", layout="wide")
 
-# Récupération des variables Railway
-# Récupération des secrets Streamlit (au lieu de Railway)
+# À METTRE À LA PLACE
 HF_TOKEN = st.secrets.get('HF_TOKEN')
 GOOGLE_JSON = st.secrets.get('GOOGLE_SERVICE_ACCOUNT_INFO')
 
