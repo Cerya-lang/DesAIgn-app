@@ -12,22 +12,17 @@ st.set_page_config(page_title="DesAIgn Studio | ÉTS", page_icon="🎨", layout=
 # RÉCUPÉRATION SÉCURISÉE DES SECRETS
 # On utilise str() et on gère le cas où le secret n'existe pas du tout
 HF_TOKEN = str(st.secrets.get('HF_TOKEN', ""))
-GOOGLE_JSON = st.secrets.get('GOOGLE_SERVICE_ACCOUNT_INFO')
-
 # --- INITIALISATION IA ---
 def init_gemini():
-    if not GOOGLE_JSON:
-        return None, "Secret GOOGLE_SERVICE_ACCOUNT_INFO introuvable."
-    
     try:
-        # Conversion forcée en string au cas où Streamlit l'interprète mal
-        json_data = str(GOOGLE_JSON).strip()
-        info = json.loads(json_data)
-        cred = service_account.Credentials.from_service_account_info(info)
-        genai.configure(credentials=cred)
-        return genai.GenerativeModel(model_name='gemini-1.5-flash-latest'), None
-    except json.JSONDecodeError as e:
-        return None, f"Erreur de format JSON : {e}"
+        api_key = st.secrets.get("GOOGLE_API_KEY")
+        if not api_key:
+            return None, "Secret GOOGLE_API_KEY introuvable."
+            
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        return model, None
+        
     except Exception as e:
         return None, f"Erreur système : {e}"
 
