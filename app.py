@@ -1,9 +1,16 @@
 import streamlit as st
 import google.generativeai as genai
 import re
-from huggingface_hub import InferenceClient
 import requests
 import streamlit.components.v1 as components
+
+# Optionnel : essayer d'importer HF seulement si nécessaire
+try:
+    from huggingface_hub import InferenceClient
+    hf_available = True
+except ImportError:
+    hf_available = False
+    InferenceClient = None
 
 # ====================== CONFIGURATION ======================
 st.set_page_config(
@@ -29,12 +36,9 @@ def init_gemini():
 
 model, gemini_error = init_gemini()
 
-# --- Client Hugging Face ---
-hf_client = InferenceClient(token=HF_TOKEN) if HF_TOKEN else None
-
 # ====================== INTERFACE ======================
 st.title("🎨 DesAIgn | Studio de Recherche & Création")
-st.caption("Analyse multilingue + Génération 3D gratuite avec Shap-E (FLUX prêt)")
+st.caption("Analyse multilingue + Génération 3D gratuite avec Shap-E")
 
 with st.sidebar:
     st.title("🎨 DesAIgn Dashboard")
@@ -47,15 +51,15 @@ with st.sidebar:
     st.success("✅ Mode Gratuit - Hugging Face")
     if model:
         st.success("✅ Gemini connecté")
-    if hf_client:
-        st.success("✅ HF connecté")
+    if hf_available:
+        st.success("✅ huggingface_hub installé")
     else:
-        st.warning("⚠️ HF_TOKEN manquant dans les secrets")
+        st.error("❌ huggingface_hub non installé → Vérifie requirements.txt")
 
 # ====================== TABS ======================
 tab1, tab2, tab3 = st.tabs(["💬 Analyse Multilingue", "🧊 Moteur 3D", "📞 War Room"])
 
-# ====================== TAB 1 : ANALYSE MULTILINGUE ======================
+# ====================== TAB 1 : ANALYSE ======================
 with tab1:
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -88,7 +92,7 @@ with tab1:
             else:
                 st.error(gemini_error)
 
-# ====================== TAB 2 : MOTEUR 3D (Shap-E + FLUX prêt) ======================
+# ====================== TAB 2 : MOTEUR 3D ======================
 with tab2:
     st.subheader("🧊 Moteur 3D Gratuit – Shap-E")
 
@@ -107,91 +111,58 @@ with tab2:
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        st.write("**Prompt 3D généré par l'IA**")
         current_prompt = st.text_area(
-            "Prompt actuel (tu peux le modifier)",
+            "Prompt 3D actuel (modifiable)",
             value=st.session_state.current_3d_prompt,
             height=180
         )
         st.session_state.current_3d_prompt = current_prompt
 
-        # Remix avec Gemini
-        remix_instruction = st.text_input(
-            "Modifier le design avec Gemini :",
-            placeholder="Ajoute des bandes rouges racing, style cyberpunk, couleur bleu métallisé..."
-        )
+        remix_instruction = st.text_input("Modifier avec Gemini :", placeholder="Ajoute des bandes rouges racing...")
         if st.button("✨ Remix avec Gemini"):
             if model and current_prompt.strip():
                 with st.spinner("Remix en cours..."):
                     remix_resp = model.generate_content(
-                        f"Modifie ce prompt 3D selon : {remix_instruction}\n\nPrompt actuel :\n{current_prompt}\n"
-                        "Retourne UNIQUEMENT le nouveau prompt complet et très détaillé en anglais."
+                        f"Modifie ce prompt selon : {remix_instruction}\n\nPrompt actuel :\n{current_prompt}\nRetourne UNIQUEMENT le nouveau prompt détaillé en anglais."
                     )
                     st.session_state.current_3d_prompt = remix_resp.text.strip()
-                    st.success("✅ Prompt mis à jour par Gemini !")
+                    st.success("✅ Prompt mis à jour !")
                     st.rerun()
 
-        use_flux = st.checkbox("Utiliser FLUX pour générer une belle image de référence avant Shap-E", value=False)
-
-        # Bouton de génération
-        if st.button("🚀 Générer le modèle 3D avec Shap-E", type="primary"):
-            if not hf_client:
-                st.error("❌ HF_TOKEN manquant dans les secrets Streamlit.")
+        if st.button("🚀 Générer avec Shap-E", type="primary"):
+            if not hf_available:
+                st.error("❌ huggingface_hub n'est pas installé. Ajoute-le dans requirements.txt")
+            elif not HF_TOKEN:
+                st.error("❌ HF_TOKEN manquant dans les secrets.")
             elif not current_prompt.strip():
-                st.error("Le prompt est vide.")
+                st.error("Prompt vide.")
             else:
-                with st.spinner("Génération en cours... (peut prendre 30 à 90 secondes)"):
+                client = InferenceClient(token=HF_TOKEN)
+                with st.spinner("Génération Shap-E en cours (30-90s)..."):
                     try:
-                        # FLUX (optionnel)
-                        if use_flux:
-                            with st.spinner("Génération image FLUX..."):
-                                flux_image = hf_client.text_to_image(
-                                    prompt=current_prompt + ", highly detailed, professional product photo, 8k",
-                                    model="black-forest-labs/FLUX.1-schnell",
-                                    num_inference_steps=20,
-                                    guidance_scale=7.5
-                                )
-                                st.image(flux_image, caption="Image de référence - FLUX")
-                                st.session_state.last_flux_image = flux_image
-
-                        # Shap-E : Text-to-3D
-                        result = hf_client.text_to_3d(
+                        result = client.text_to_3d(
                             prompt=current_prompt,
                             model="openai/shap-e",
-                            num_inference_steps=64,
-                            guidance_scale=15.0
+                            num_inference_steps=64
                         )
                         st.session_state.last_3d_result = result
-                        st.success("✅ Modèle Shap-E généré !")
+                        st.success("✅ Génération terminée !")
                     except Exception as e:
-                        st.error(f"Erreur pendant la génération : {str(e)}")
+                        st.error(f"Erreur Shap-E : {e}")
 
     with col2:
-        st.write("**Visualiseur du résultat**")
+        st.write("**Résultat 3D**")
         if "last_3d_result" in st.session_state:
             result = st.session_state.last_3d_result
             if hasattr(result, 'url') and result.url:
-                st.image(result.url, caption="Rendu 3D Shap-E (GIF rotation)", use_column_width=True)
-                
-                # Téléchargement du GIF
-                try:
-                    gif_data = requests.get(result.url).content
-                    st.download_button(
-                        "⬇️ Télécharger le GIF",
-                        data=gif_data,
-                        file_name="shap-e_generation.gif",
-                        mime="image/gif"
-                    )
-                except:
-                    pass
+                st.image(result.url, caption="Rendu Shap-E (GIF)", use_column_width=True)
             else:
-                st.write("Résultat prêt (debug) :")
                 st.json(result)
         else:
-            st.info("👈 Clique sur le bouton 'Générer' à gauche pour créer le modèle 3D.")
+            st.info("Génère un modèle à gauche →")
 
-# ====================== TAB 3 : WAR ROOM ======================
+# ====================== TAB 3 ======================
 with tab3:
-    st.info("📞 War Room — Espace de collaboration avancé (à développer)")
+    st.info("📞 War Room — À développer")
 
-st.caption("DesAIgn Studio | École de Technologie Supérieure (ÉTS) — Version Avril 2026")
+st.caption("DesAIgn Studio | ÉTS — Version Avril 2026")
